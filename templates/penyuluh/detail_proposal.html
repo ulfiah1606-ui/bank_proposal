@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+{% block title %}Form Pengajuan Proposal{% endblock %}
+{% block content %}
+
+<style>
+body{background:#ccc;}
+
+.paper{
+    width:210mm;
+    min-height:330mm;
+    margin:20px auto;
+    background:white;
+    padding:25mm 25mm 25mm 30mm;
+    font-family:"Times New Roman", serif;
+    font-size:14px;
+    line-height:1.7;
+    color:#000;
+    box-shadow:0 0 15px rgba(0,0,0,0.2);
+}
+
+.center{text-align:center;}
+.right{text-align:right;}
+.justify{text-align:justify;}
+
+.kop{
+    text-align:center;
+    font-weight:bold;
+}
+
+.kop hr{
+    border:1.5px solid black;
+    margin-top:10px;
+}
+
+.section-title{
+    font-weight:bold;
+    margin-top:20px;
+}
+
+.table-cpcl{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:10px;
+}
+
+.table-cpcl th,.table-cpcl td{
+    border:1px solid black;
+    padding:5px;
+    font-size:13px;
+}
+
+.table-cpcl th{
+    background:#f2f2f2;
+}
+
+.ttd-area{
+    margin-top:70px;
+    display:flex;
+    justify-content:space-between;
+}
+
+.ttd-box{
+    width:40%;
+    text-align:center;
+}
+
+.ttd-box img{
+    height:80px;
+}
+
+@media print{
+    @page{size:210mm 330mm; margin:20mm;}
+    body{background:white;}
+    .paper{margin:0; box-shadow:none;}
+    .no-print{display:none;}
+}
+</style>
+
+<div class="paper">
+
+    <!-- ================= KOP DINAS ================= -->
+    <div class="kop">
+        PEMERINTAH KABUPATEN GOWA<br>
+        DINAS PERTANIAN<br>
+        <div style="font-size:16px;">Bank Proposal Bantuan Pertanian</div>
+        <hr>
+    </div>
+
+    <div class="center" style="margin-top:10px; font-weight:bold;">
+        FORM PENGAJUAN PROPOSAL BANTUAN PERTANIAN
+    </div>
+
+    <br>
+
+    <!-- ================= HEADER SURAT ================= -->
+    <table width="100%">
+        <tr>
+            <td width="60%">
+                Nomor Surat : {{ proposal.nomor_surat or '-' }} <br>
+                Tanggal Surat : {{ proposal.tanggal_surat.strftime("%d %B %Y") if proposal.tanggal_surat else now.strftime("%d %B %Y") }} <br>
+                Lampiran : 1 Berkas <br>
+                Perihal : Permohonan Bantuan {{ proposal.jenis_bantuan or '' }}
+            </td>
+            <td width="40%" class="right">
+                Kepada Yth,<br>
+                Ibu Bupati Kabupaten Gowa<br>
+                Di Sungguminasa
+            </td>
+        </tr>
+    </table>
+
+    <br>
+    Dengan hormat,
+
+    <div class="justify">
+        Sehubungan dengan program peningkatan produksi pertanian di Kabupaten Gowa,
+        kami Kelompok Tani <b>{{ proposal.nama_kelompok }}</b>
+        yang beralamat di Desa {{ proposal.desa }},
+        Kecamatan {{ proposal.kecamatan }},
+        Kabupaten {{ proposal.kabupaten }}
+        mengajukan permohonan bantuan pertanian.
+    </div>
+
+    <!-- ================= A ================= -->
+    <div class="section-title">A. Latar Belakang</div>
+    <div class="justify">
+        {{ proposal.latar_belakang or "-" }}
+    </div>
+
+    <!-- ================= B ================= -->
+    <div class="section-title">B. Maksud</div>
+    <div class="justify">
+        {{ proposal.maksud or "-" }}
+    </div>
+
+    <!-- ================= C ================= -->
+    <div class="section-title">C. Tujuan</div>
+    <div class="justify">
+        {{ proposal.tujuan or "-" }}
+    </div>
+
+    <!-- ================= D ================= -->
+    <div class="section-title">D. Usulan Kebutuhan / Bahan</div>
+    <div class="justify">
+        {{ proposal.usulan_kebutuhan or "-" }}
+    </div>
+
+    <!-- ================= E ================= -->
+    <div class="section-title">E. Data Kelompok Tani (CPCL)</div>
+
+    <table class="table-cpcl">
+        <tr>
+            <th>No</th>
+            <th>Nama</th>
+            <th>NIK</th>
+            <th>Jabatan</th>
+            <th>Alamat</th>
+            <th>Luas (Ha)</th>
+            <th>Kebutuhan</th>
+            <th>Koordinat</th>
+        </tr>
+
+        {% if anggota_kelompok %}
+            {% for a in anggota_kelompok %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ a.nama }}</td>
+                <td>{{ a.nik }}</td>
+                <td>{{ a.jabatan }}</td>
+                <td>{{ a.alamat }}</td>
+                <td>{{ a.luas }}</td>
+                <td>{{ a.kebutuhan }}</td>
+                <td>{{ a.koordinat }}</td>
+            </tr>
+            {% endfor %}
+        {% else %}
+            <tr>
+                <td colspan="8" style="text-align:center;">
+                    Belum ada data anggota kelompok
+                </td>
+            </tr>
+        {% endif %}
+    </table>
+
+    <br>
+    <b>Total Petani :</b> {{ anggota_kelompok|length }} Orang<br>
+    <b>Total Luas Lahan :</b> {{ total_luas }} Ha<br>
+    <b>Total Kebutuhan :</b> {{ total_kebutuhan }}
+
+    <!-- ================= F ================= -->
+    <div class="section-title">F. Lokasi / Areal</div>
+    <div class="justify">
+        {{ proposal.lokasi or "-" }}
+    </div>
+
+    <!-- ================= G ================= -->
+    <div class="section-title">G. Penutup</div>
+    <div class="justify">
+        {{ proposal.penutup or "Demikian permohonan ini kami ajukan, atas perhatian dan bantuannya kami ucapkan terima kasih." }}
+    </div>
+
+    <!-- ================= LAMPIRAN ================= -->
+    <div class="section-title">Lampiran</div>
+
+    <b>Foto KTP Ketua</b><br>
+    {% if proposal.ktp_ketua %}
+        <img src="{{ url_for('static', filename='uploads/' + proposal.ktp_ketua) }}" width="300">
+    {% else %}
+        Tidak ada file
+    {% endif %}
+
+    <br><br>
+
+    <b>Screenshot Simluhtan</b><br>
+    {% if proposal.simluhtan %}
+        <img src="{{ url_for('static', filename='uploads/' + proposal.simluhtan) }}" width="300">
+    {% else %}
+        Tidak ada file
+    {% endif %}
+
+    <!-- ================= TTD ================= -->
+    <div class="ttd-area">
+        <div class="ttd-box">
+            Ketua Poktan<br><br>
+
+            {% if proposal.ttd_ketua %}
+                <img src="{{ url_for('static', filename='ttd/' + proposal.ttd_ketua) }}">
+            {% endif %}
+
+            <br><br>
+            <b>{{ proposal.nama_ketua or '-' }}</b><br>
+            NIK : {{ proposal.nik_ketua or '-' }}
+        </div>
+
+        <div class="ttd-box">
+            Penyuluh Pertanian<br><br>
+
+            {% if proposal.ttd_ppl %}
+                <img src="{{ url_for('static', filename='ttd/' + proposal.ttd_ppl) }}">
+            {% endif %}
+
+            <br><br>
+            <b>{{ proposal.nama_ppl or session.nama_penyuluh }}</b><br>
+            NIP : {{ proposal.nip_ppl or session.nip_penyuluh }}
+        </div>
+    </div>
+
+</div>
+
+<div class="text-center no-print">
+    <button onclick="window.print()" class="btn btn-primary">
+        Cetak / Simpan PDF (F4)
+    </button>
+</div>
+
+{% endblock %}

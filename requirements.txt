@@ -1,0 +1,8 @@
+flask
+flask-mysqldb
+werkzeug
+python-dotenv
+requests
+pandas
+numpy
+scikit-learn

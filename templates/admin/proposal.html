@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Data Proposal | Bank Proposal Pertanian</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f6f9; }
+        .header-gowa {
+            background-color: #1b8f5a;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .header-gowa h4 { margin-bottom: 0; font-weight: bold; }
+        .card { border-radius: 10px; }
+        .table th { background-color: #f1f3f5; }
+        footer {
+            margin-top: 60px;
+            padding: 15px;
+            background-color: #ffffff;
+            text-align: center;
+            font-size: 14px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header-gowa">
+    <h4>BANK PROPOSAL BANTUAN PERTANIAN</h4>
+    <small>Dinas Pertanian Kabupaten Gowa</small>
+</div>
+
+<div class="container mt-4">
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h5 class="mb-3 fw-bold">📄 Data Proposal Masuk</h5>
+
+            {% if proposal %}
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle text-center">
+                    <thead>
+                        <tr>
+                            <th>ID Proposal</th>
+                            <th>Status</th>
+                            <th>Skor Kelayakan</th>
+                            <th>Skor Urgensi</th>
+                            <th width="150">Proses AI</th>
+                            <th width="180">CRUD</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in proposal %}
+                        <tr>
+
+                            <!-- ID -->
+                            <td class="fw-semibold">
+                                {{ p.id_proposal }}
+                            </td>
+
+                            <!-- STATUS -->
+                            <td>
+                                {% if p.status == "diajukan" %}
+                                    <span class="badge bg-warning text-dark">Diajukan</span>
+                                {% elif p.status == "diproses" %}
+                                    <span class="badge bg-primary">Diproses</span>
+                                {% elif p.status == "selesai" %}
+                                    <span class="badge bg-success">Selesai</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ p.status }}</span>
+                                {% endif %}
+                            </td>
+
+                            <!-- SKOR -->
+                            <td>{{ p.skor_kelayakan if p.skor_kelayakan else "-" }}</td>
+                            <td>{{ p.skor_urgensi if p.skor_urgensi else "-" }}</td>
+
+                            <!-- PROSES AI -->
+                            <td>
+                                {% if p.status == "diajukan" %}
+                                    <a href="/admin/analisis-ai/{{ p.id_proposal }}"
+                                       class="btn btn-sm btn-primary w-100">
+                                        🤖 Proses
+                                    </a>
+                                {% elif p.status == "diproses" %}
+                                    <span class="badge bg-info">Diproses</span>
+                                {% elif p.status == "selesai" %}
+                                    <span class="badge bg-success">✔ Selesai</span>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+
+                            <!-- CRUD (1 KOLOM) -->
+                            <td>
+                                <div class="d-flex gap-2 justify-content-center">
+                                    <a href="/admin/edit/{{ p.id_proposal }}"
+                                       class="btn btn-sm btn-warning">
+                                       ✏ Edit
+                                    </a>
+
+                                    <a href="/admin/delete/{{ p.id_proposal }}"
+                                       class="btn btn-sm btn-danger"
+                                       onclick="return confirm('Yakin ingin menghapus proposal ini?')">
+                                       🗑 Hapus
+                                    </a>
+                                </div>
+                            </td>
+
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+                <div class="alert alert-warning text-center">
+                    Belum ada proposal yang masuk
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="text-end mt-3">
+        <a href="/admin/clustering" class="btn btn-primary">
+            📊 Jalankan K-Means Clustering
+        </a>
+        <a href="/admin/hasil-prioritas" class="btn btn-success">
+            🏆 Lihat Hasil Prioritas
+        </a>
+    </div>
+
+</div>
+
+<footer>
+    © 2026 Dinas Pertanian Kabupaten Gowa<br>
+    Sistem Pendukung Keputusan Bantuan Pertanian Berbasis AI & K-Means
+</footer>
+
+</body>
+</html>

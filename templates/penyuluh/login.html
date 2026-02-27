@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Login Penyuluh</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+body{
+    background:#f1f4f9;
+    font-family:'Segoe UI',sans-serif;
+}
+
+.login-wrapper{
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    padding:40px;
+}
+
+.login-box{
+    width:100%;
+    max-width:520px;
+    background:white;
+    padding:50px 45px;
+    border-radius:18px;
+    box-shadow:0 15px 40px rgba(0,0,0,.08);
+}
+
+.login-box h1{
+    font-size:30px;
+    font-weight:700;
+    color:#0b3d91;
+    margin-bottom:8px;
+}
+
+.subtitle{
+    font-size:14px;
+    margin-bottom:18px;
+}
+
+.subtitle a{
+    color:#0b3d91;
+    font-weight:600;
+    text-decoration:none;
+}
+
+.subtitle a:hover{
+    text-decoration:underline;
+}
+
+.warning-box{
+    background:#eef4ff;
+    padding:12px;
+    border-radius:8px;
+    margin-bottom:22px;
+    font-size:13px;
+    color:#0b3d91;
+    border:1px solid #d6e4ff;
+}
+
+.btn-login{
+    background:#0b3d91;
+    color:white;
+    font-weight:600;
+    padding:12px;
+    border-radius:8px;
+    border:none;
+}
+
+.btn-login:hover{
+    background:#082c6c;
+}
+
+.small-link{
+    font-size:13px;
+    text-decoration:none;
+    color:#6c757d;
+}
+
+.small-link:hover{
+    text-decoration:underline;
+}
+</style>
+</head>
+
+<body>
+
+<div class="login-wrapper">
+    <div class="login-box">
+
+        <h1>Selamat Datang Kembali!</h1>
+
+        <div class="subtitle">
+            Belum memiliki akun?
+            <a href="/penyuluh/register">
+                Silahkan buat akun anda disini!
+            </a>
+        </div>
+
+        <div class="warning-box">
+            Untuk menjaga keamanan, mohon perbarui password login Anda secara berkala.
+        </div>
+
+        {% if error %}
+        <div class="alert alert-danger text-center">
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <form method="POST">
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Username</label>
+                <input type="text"
+                       name="username"
+                       class="form-control"
+                       placeholder="Masukan Username"
+                       required>
+            </div>
+
+            <div class="mb-2">
+                <label class="form-label fw-semibold">Kata Sandi</label>
+                <input type="password"
+                       name="password"
+                       class="form-control"
+                       placeholder="Silahkan Masukan Kata Sandi"
+                       required>
+            </div>
+
+            <div class="text-end mb-3">
+                <a href="/lupa-password/penyuluh" class="small-link">
+                     Lupa kata sandi?
+            </a>
+            </div>
+
+            <div class="d-grid">
+                <button type="submit" class="btn btn-login">
+                    LOGIN
+                </button>
+            </div>
+
+        </form>
+
+            </a>
+        </div>
+
+    </div>
+</div>
+
+</body>
+</html>

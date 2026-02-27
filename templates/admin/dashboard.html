@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard Admin{% endblock %}
+
+{% block content %}
+<h4>Dashboard Admin</h4>
+<hr>
+
+<div class="alert alert-success">
+    Total Proposal Masuk: <strong>{{ total }}</strong>
+</div>
+
+<a href="/admin/proposal" class="btn btn-primary">Kelola Proposal</a>
+<a href="/admin/clustering" class="btn btn-warning">Proses Clustering</a>
+{% endblock %}

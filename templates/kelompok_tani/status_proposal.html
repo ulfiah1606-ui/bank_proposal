@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<h4>Cek Status Proposal</h4>
+
+<form method="POST">
+    <input name="id_proposal" placeholder="Masukkan ID Proposal" required>
+    <button type="submit">Cek Status</button>
+</form>
+
+{% if data %}
+<hr>
+<p><b>ID Proposal:</b> {{ data.id_proposal }}</p>
+<p><b>Status:</b> {{ data.status }}</p>
+<p><b>Kategori Prioritas:</b> {{ data.kategori }}</p>
+<p><b>Skor Kelayakan:</b> {{ data.kelayakan }}</p>
+<p><b>Skor Urgensi:</b> {{ data.urgensi }}</p>
+{% endif %}
+
+{% endblock %}
