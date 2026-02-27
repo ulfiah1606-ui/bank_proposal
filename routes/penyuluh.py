@@ -17,6 +17,9 @@ def login_penyuluh():
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
 
+        # DEBUG: lihat data yang diterima dari form
+        print(f"[DEBUG LOGIN] Username: '{username}', Password: '{password}'")
+
         cur = mysql.connection.cursor(DictCursor)
         cur.execute("""
             SELECT id_penyuluh, nama_lengkap, kecamatan,
@@ -26,6 +29,15 @@ def login_penyuluh():
         """, (username, password))
 
         user = cur.fetchone()
+
+        # DEBUG: lihat hasil query
+        print(f"[DEBUG LOGIN] Query result: {user}")
+
+        # DEBUG: cek semua data penyuluh
+        cur.execute("SELECT username, password FROM penyuluh")
+        semua = cur.fetchall()
+        print(f"[DEBUG LOGIN] Semua penyuluh di DB: {semua}")
+
         cur.close()
 
         if user:
