@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, session, url_fo
 from extensions import mysql
 from MySQLdb.cursors import DictCursor
 from datetime import datetime  # ✅ TAMBAHAN
+import json
 
 penyuluh_bp = Blueprint("penyuluh", __name__, url_prefix="/penyuluh")
 
@@ -186,11 +187,24 @@ def detail_proposal(id_proposal):
         return redirect(url_for("penyuluh.login_penyuluh"))
 
     cur = mysql.connection.cursor(DictCursor)
+
+    # JOIN proposal + kelompok_tani + proposal_narasi + proposal_dokumen
     cur.execute("""
-        SELECT p.*, kt.nama_kelompok
+        SELECT p.*, kt.nama_kelompok, kt.kecamatan, kt.desa, kt.kabupaten,
+               kt.nama_ketua AS kt_nama_ketua, kt.nik_ketua, kt.ttd_ketua,
+               pn.latar_belakang, pn.maksud, pn.tujuan AS narasi_tujuan,
+               pn.kebutuhan AS usulan_kebutuhan, pn.data_kelompok,
+               pn.lokasi, pn.penutup, pn.permohonan_bantuan,
+               pn.nomor_surat, pn.tanggal_surat, pn.lampiran,
+               pn.perihal, pn.tujuan_surat, pn.lokasi_tujuan,
+               pd.foto_ktp AS ktp_ketua, pd.ss_simluhtan AS simluhtan
         FROM proposal p
         JOIN kelompok_tani kt 
             ON p.id_kelompok = kt.id_kelompok
+        LEFT JOIN proposal_narasi pn
+            ON p.id_proposal = pn.id_proposal
+        LEFT JOIN proposal_dokumen pd
+            ON p.id_proposal = pd.id_proposal
         WHERE p.id_proposal = %s
     """, (id_proposal,))
 
@@ -200,9 +214,30 @@ def detail_proposal(id_proposal):
     if not proposal:
         return redirect(url_for("penyuluh.dashboard"))
 
+    # Parse data_kelompok JSON untuk tabel CPCL
+    anggota_kelompok = []
+    total_luas = 0
+    total_kebutuhan = 0
+
+    if proposal.get("data_kelompok"):
+        try:
+            anggota_kelompok = json.loads(proposal["data_kelompok"])
+            for a in anggota_kelompok:
+                total_luas += float(a.get("luas", 0))
+                total_kebutuhan += float(a.get("kebutuhan", 0))
+        except (json.JSONDecodeError, ValueError):
+            anggota_kelompok = []
+
+    # Pastikan field tujuan narasi tersedia sebagai proposal.tujuan
+    if proposal.get("narasi_tujuan"):
+        proposal["tujuan"] = proposal["narasi_tujuan"]
+
     return render_template(
         "penyuluh/detail_proposal.html",
         proposal=proposal,
+        anggota_kelompok=anggota_kelompok,
+        total_luas=total_luas,
+        total_kebutuhan=total_kebutuhan,
         now=datetime.now()  # ✅ FIX ERROR NOW
     )
 
