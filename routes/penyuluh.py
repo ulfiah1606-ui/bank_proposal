@@ -1,149 +1,10 @@
 from flask import Blueprint, render_template, request, redirect, session, url_for
 from extensions import mysql
 from MySQLdb.cursors import DictCursor
-from datetime import datetime  # ✅ TAMBAHAN
+from datetime import datetime
 import json
 
 penyuluh_bp = Blueprint("penyuluh", __name__, url_prefix="/penyuluh")
-
-
-# =====================================================
-# LOGIN PENYULUH
-# =====================================================
-@penyuluh_bp.route("/login", methods=["GET", "POST"])
-def login_penyuluh():
-
-    if request.method == "POST":
-        username = request.form.get("username", "").strip()
-        password = request.form.get("password", "").strip()
-
-        # DEBUG: lihat data yang diterima dari form
-        print(f"[DEBUG LOGIN] Username: '{username}', Password: '{password}'")
-
-        cur = mysql.connection.cursor(DictCursor)
-        cur.execute("""
-            SELECT id_penyuluh, nama_lengkap, kecamatan,
-                   nip_penyuluh, ttd_penyuluh
-            FROM penyuluh
-            WHERE username = %s AND password = %s
-        """, (username, password))
-
-        user = cur.fetchone()
-
-        # DEBUG: lihat hasil query
-        print(f"[DEBUG LOGIN] Query result: {user}")
-
-        # DEBUG: cek semua data penyuluh
-        cur.execute("SELECT username, password FROM penyuluh")
-        semua = cur.fetchall()
-        print(f"[DEBUG LOGIN] Semua penyuluh di DB: {semua}")
-
-        cur.close()
-
-        if user:
-            session.clear()
-            session["role"] = "penyuluh"
-            session["id_penyuluh"] = user["id_penyuluh"]
-            session["nama_penyuluh"] = user["nama_lengkap"]
-            session["nip_penyuluh"] = user["nip_penyuluh"]
-            session["ttd_penyuluh"] = user["ttd_penyuluh"]
-            session["wilayah_binaan"] = user["kecamatan"]
-
-            return redirect(url_for("penyuluh.dashboard"))
-
-        return render_template("penyuluh/login.html",
-                               error="Username atau Password salah")
-
-    return render_template("penyuluh/login.html")
-
-
-# =====================================================
-# REGISTER PENYULUH
-# =====================================================
-@penyuluh_bp.route("/register", methods=["GET", "POST"])
-def register_penyuluh():
-
-    if request.method == "POST":
-        nama_lengkap = request.form.get("nama_lengkap", "").strip()
-        username = request.form.get("username", "").strip()
-        password = request.form.get("password", "").strip()
-        kecamatan = request.form.get("kecamatan", "").strip()
-        nip_penyuluh = request.form.get("nip_penyuluh", "").strip()
-
-        cur = mysql.connection.cursor(DictCursor)
-
-        cur.execute(
-            "SELECT id_penyuluh FROM penyuluh WHERE username = %s",
-            (username,)
-        )
-        existing = cur.fetchone()
-
-        if existing:
-            cur.close()
-            return render_template(
-                "penyuluh/register.html",
-                error="Username sudah digunakan"
-            )
-
-        cur.execute("""
-            INSERT INTO penyuluh (nama_lengkap, nip_penyuluh, username, password, kecamatan)
-            VALUES (%s, %s, %s, %s, %s)
-        """, (nama_lengkap, nip_penyuluh, username, password, kecamatan))
-
-        mysql.connection.commit()
-        cur.close()
-
-        return redirect(url_for("penyuluh.login_penyuluh"))
-
-    return render_template("penyuluh/register.html")
-
-
-# =====================================================
-# LUPA PASSWORD PENYULUH
-# =====================================================
-@penyuluh_bp.route("/lupa-password", methods=["GET", "POST"])
-def lupa_password():
-
-    if request.method == "POST":
-        username = request.form.get("username", "").strip()
-        password_baru = request.form.get("password", "").strip()
-
-        if not username or not password_baru:
-            return render_template(
-                "penyuluh/lupa_password.html",
-                error="Username dan Password baru wajib diisi"
-            )
-
-        cur = mysql.connection.cursor(DictCursor)
-
-        cur.execute(
-            "SELECT id_penyuluh FROM penyuluh WHERE username = %s",
-            (username,)
-        )
-        user = cur.fetchone()
-
-        if not user:
-            cur.close()
-            return render_template(
-                "penyuluh/lupa_password.html",
-                error="Username tidak ditemukan"
-            )
-
-        cur.execute("""
-            UPDATE penyuluh
-            SET password = %s
-            WHERE username = %s
-        """, (password_baru, username))
-
-        mysql.connection.commit()
-        cur.close()
-
-        return render_template(
-            "penyuluh/lupa_password.html",
-            sukses="Password berhasil diperbarui. Silakan login."
-        )
-
-    return render_template("penyuluh/lupa_password.html")
 
 
 # =====================================================
@@ -153,7 +14,7 @@ def lupa_password():
 def dashboard():
 
     if session.get("role") != "penyuluh":
-        return redirect(url_for("penyuluh.login_penyuluh"))
+        return redirect("/login/penyuluh")
 
     wilayah = session.get("wilayah_binaan")
 
@@ -190,13 +51,13 @@ def dashboard():
 
 
 # =====================================================
-# DETAIL PROPOSAL (FIX NOW ERROR)
+# DETAIL PROPOSAL
 # =====================================================
 @penyuluh_bp.route("/detail/<id_proposal>")
 def detail_proposal(id_proposal):
 
     if session.get("role") != "penyuluh":
-        return redirect(url_for("penyuluh.login_penyuluh"))
+        return redirect("/login/penyuluh")
 
     cur = mysql.connection.cursor(DictCursor)
 
@@ -250,7 +111,7 @@ def detail_proposal(id_proposal):
         anggota_kelompok=anggota_kelompok,
         total_luas=total_luas,
         total_kebutuhan=total_kebutuhan,
-        now=datetime.now()  # ✅ FIX ERROR NOW
+        now=datetime.now()
     )
 
 
@@ -261,7 +122,7 @@ def detail_proposal(id_proposal):
 def simpan_ttd(id_proposal):
 
     if session.get("role") != "penyuluh":
-        return redirect(url_for("penyuluh.login_penyuluh"))
+        return redirect("/login/penyuluh")
 
     signature = request.form.get("signature")
     nama = session.get("nama_penyuluh")
@@ -294,7 +155,7 @@ def simpan_ttd(id_proposal):
 def ttd_proposal(id_proposal):
 
     if session.get("role") != "penyuluh":
-        return redirect(url_for("penyuluh.login_penyuluh"))
+        return redirect("/login/penyuluh")
 
     nama = session.get("nama_penyuluh")
     nip = session.get("nip_penyuluh")
@@ -324,4 +185,4 @@ def ttd_proposal(id_proposal):
 @penyuluh_bp.route("/logout")
 def logout():
     session.clear()
-    return redirect(url_for("penyuluh.login_penyuluh"))
+    return redirect("/login/penyuluh")

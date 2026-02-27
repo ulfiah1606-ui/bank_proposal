@@ -31,22 +31,43 @@ def register_kelompok():
     if request.method == "POST":
         cur = mysql.connection.cursor()
 
-        cur.execute("""
-            INSERT INTO kelompok_tani
-            (nama_kelompok, nama_ketua, kecamatan, desa,
-             jumlah_anggota, created_at, password)
-            VALUES (%s,%s,%s,%s,%s,NOW(),%s)
-        """, (
-            request.form.get("nama_kelompok"),
-            request.form.get("nama_ketua"),
-            request.form.get("kecamatan"),
-            request.form.get("desa"),
-            request.form.get("jumlah_anggota"),
-            request.form.get("password")
-        ))
+        try:
+            # Insert ke tabel kelompok_tani (profil)
+            cur.execute("""
+                INSERT INTO kelompok_tani
+                (nama_kelompok, nama_ketua, kecamatan, desa,
+                 jumlah_anggota, created_at, password)
+                VALUES (%s,%s,%s,%s,%s,NOW(),%s)
+            """, (
+                request.form.get("nama_kelompok"),
+                request.form.get("nama_ketua"),
+                request.form.get("kecamatan"),
+                request.form.get("desa"),
+                request.form.get("jumlah_anggota"),
+                request.form.get("password")
+            ))
 
-        mysql.connection.commit()
-        id_kelompok_baru = cur.lastrowid
+            id_kelompok_baru = cur.lastrowid
+
+            # Insert ke tabel users (autentikasi)
+            cur.execute("""
+                INSERT INTO users
+                (nama, username, password, role, id_kelompok, wilayah_binaan)
+                VALUES (%s, %s, %s, 'kelompok_tani', %s, %s)
+            """, (
+                request.form.get("nama_kelompok"),
+                str(id_kelompok_baru),
+                request.form.get("password"),
+                id_kelompok_baru,
+                request.form.get("kecamatan")
+            ))
+
+            mysql.connection.commit()
+        except Exception as e:
+            mysql.connection.rollback()
+            cur.close()
+            return f"ERROR: {str(e)}"
+
         cur.close()
 
         return render_template(
@@ -65,22 +86,25 @@ def register_kelompok():
 def login_kelompok():
 
     if request.method == "POST":
+        id_kelompok = request.form.get("id_kelompok", "").strip()
+        password = request.form.get("password", "").strip()
+
         cur = mysql.connection.cursor()
+
+        # Login dari tabel users
         cur.execute("""
-            SELECT id_kelompok, nama_kelompok
-            FROM kelompok_tani
-            WHERE id_kelompok=%s AND password=%s
-        """, (
-            request.form.get("id_kelompok"),
-            request.form.get("password")
-        ))
+            SELECT id_user, nama, id_kelompok
+            FROM users
+            WHERE username = %s AND password = %s AND role = 'kelompok_tani'
+        """, (id_kelompok, password))
         user = cur.fetchone()
         cur.close()
 
         if user:
             session.clear()
             session["kelompok_login"] = True
-            session["id_kelompok"] = user[0]
+            session["role"] = "kelompok_tani"
+            session["id_kelompok"] = user[2]
             session["nama_kelompok"] = user[1]
             return redirect("/proposal/input")
 

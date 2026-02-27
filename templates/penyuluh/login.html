@@ -95,7 +95,7 @@
 
             <div class="subtitle">
                 Belum memiliki akun?
-                <a href="/penyuluh/register">
+                <a href="/register/penyuluh">
                     Silahkan buat akun anda disini!
                 </a>
             </div>
@@ -110,7 +110,7 @@
             </div>
             {% endif %}
 
-            <form method="POST" action="{{ url_for('penyuluh.login_penyuluh') }}">
+            <form method="POST" action="/login/penyuluh">
 
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Username</label>
@@ -124,7 +124,7 @@
                 </div>
 
                 <div class="text-end mb-3">
-                    <a href="{{ url_for('penyuluh.lupa_password') }}" class="small-link">
+                    <a href="/lupa-password/penyuluh" class="small-link">
                         Lupa kata sandi?
                     </a>
                 </div>
@@ -137,10 +137,7 @@
 
             </form>
 
-            </a>
         </div>
-
-    </div>
     </div>
 
 </body>
