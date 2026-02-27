@@ -33,12 +33,12 @@ def register_kelompok():
 
         cur.execute("""
             INSERT INTO kelompok_tani
-            (nama_kelompok, ketua_kelompok, kecamatan, desa,
+            (nama_kelompok, nama_ketua, kecamatan, desa,
              jumlah_anggota, created_at, password)
             VALUES (%s,%s,%s,%s,%s,NOW(),%s)
         """, (
             request.form.get("nama_kelompok"),
-            request.form.get("ketua_kelompok"),
+            request.form.get("nama_ketua"),
             request.form.get("kecamatan"),
             request.form.get("desa"),
             request.form.get("jumlah_anggota"),
