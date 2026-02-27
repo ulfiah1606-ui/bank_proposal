@@ -6,12 +6,17 @@ auth_bp = Blueprint("auth", __name__)
 
 
 # ======================================================
-# LOGIN (ADMIN & PENYULUH)
+# LOGIN (ADMIN ONLY — via tabel users)
+# Penyuluh punya route sendiri di /penyuluh/login
 # ======================================================
 @auth_bp.route("/login/<role>", methods=["GET", "POST"])
 def login(role):
 
-    if role not in ["admin", "penyuluh"]:
+    # Penyuluh punya login sendiri, redirect ke route yang benar
+    if role == "penyuluh":
+        return redirect("/penyuluh/login")
+
+    if role != "admin":
         return redirect("/")
 
     if request.method == "POST":
@@ -27,22 +32,15 @@ def login(role):
         user = cur.fetchone()
         cur.close()
 
-        if user and user["role"] == role and user["password"] == password:
+        if user and user["role"] == "admin" and user["password"] == password:
             session.clear()
             session["user_id"] = user["id_user"]
             session["role"] = user["role"]
+            return redirect("/admin/proposal")
 
-            if role == "admin":
-                return redirect("/admin/proposal")
+        return render_template("admin/login.html", error="Username atau password salah")
 
-            if role == "penyuluh":
-                return redirect("/penyuluh/dashboard")
-
-        template = "admin/login.html" if role == "admin" else "penyuluh/login.html"
-        return render_template(template, error="Username atau password salah")
-
-    template = "admin/login.html" if role == "admin" else "penyuluh/login.html"
-    return render_template(template)
+    return render_template("admin/login.html")
 
 
 # ======================================================
