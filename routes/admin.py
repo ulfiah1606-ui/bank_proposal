@@ -6,17 +6,47 @@ from MySQLdb.cursors import DictCursor
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
+
+def _table_exists(cur, table_name):
+    cur.execute("""
+        SELECT COUNT(*)
+        FROM information_schema.tables
+        WHERE table_schema = DATABASE() AND table_name = %s
+    """, (table_name,))
+    return cur.fetchone()[0] > 0
+
+
+def _column_exists(cur, table_name, column_name):
+    cur.execute("""
+        SELECT COUNT(*)
+        FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = %s
+          AND column_name = %s
+    """, (table_name, column_name))
+    return cur.fetchone()[0] > 0
+
+
+def _has_komoditas_schema(cur):
+    return _table_exists(cur, "komoditas") and _column_exists(cur, "proposal", "id_komoditas")
+
 # ===============================
 # DASHBOARD + GRAFIK KOMODITAS
 # ===============================
 @admin_bp.route('/proposal')
 def proposal():
     cur = mysql.connection.cursor()
+    has_komoditas = _has_komoditas_schema(cur)
+    has_catatan_ocr = _column_exists(cur, "proposal", "catatan_ocr")
+
+    komoditas_select = "k.nama_komoditas" if has_komoditas else "'-' AS nama_komoditas"
+    catatan_ocr_select = "IFNULL(p.catatan_ocr, '-') AS catatan_ocr" if has_catatan_ocr else "'-' AS catatan_ocr"
+    komoditas_join = "LEFT JOIN komoditas k ON p.id_komoditas = k.id" if has_komoditas else ""
 
     # ======================
     # DATA PROPOSAL
     # ======================
-    cur.execute("""
+    cur.execute(f"""
         SELECT 
             p.id_proposal,
             kt.nama_kelompok,
@@ -24,11 +54,12 @@ def proposal():
             p.status,
             IFNULL(h.skor_kelayakan, 0),
             IFNULL(h.skor_urgensi, 0),
-            k.nama_komoditas
+            {komoditas_select},
+            {catatan_ocr_select}
         FROM proposal p
         LEFT JOIN kelompok_tani kt ON p.id_kelompok = kt.id_kelompok
         LEFT JOIN hasil_ai h ON p.id_proposal = h.id_proposal
-        LEFT JOIN komoditas k ON p.id_komoditas = k.id
+        {komoditas_join}
         ORDER BY p.tanggal_pengajuan DESC
     """)
     data = cur.fetchall()
@@ -36,23 +67,28 @@ def proposal():
     # ======================
     # CHART KOMODITAS
     # ======================
-    cur.execute("""
-        SELECT k.nama_komoditas, COUNT(*)
-        FROM proposal p
-        LEFT JOIN komoditas k ON p.id_komoditas = k.id
-        GROUP BY k.nama_komoditas
-    """)
-    chart = cur.fetchall()
-
-    komoditas_chart = [
-        {"nama": c[0] or "Lainnya", "jumlah": c[1]} for c in chart
-    ]
+    if has_komoditas:
+        cur.execute("""
+            SELECT k.nama_komoditas, COUNT(*)
+            FROM proposal p
+            LEFT JOIN komoditas k ON p.id_komoditas = k.id
+            GROUP BY k.nama_komoditas
+        """)
+        chart = cur.fetchall()
+        komoditas_chart = [
+            {"nama": c[0] or "Lainnya", "jumlah": c[1]} for c in chart
+        ]
+    else:
+        komoditas_chart = [{"nama": "Tanpa Komoditas", "jumlah": len(data)}] if data else []
 
     # ======================
     # LIST KOMODITAS (FILTER)
     # ======================
-    cur.execute("SELECT nama_komoditas FROM komoditas")
-    komoditas_list = cur.fetchall()
+    if has_komoditas:
+        cur.execute("SELECT nama_komoditas FROM komoditas")
+        komoditas_list = cur.fetchall()
+    else:
+        komoditas_list = []
 
     cur.close()
 
@@ -60,8 +96,8 @@ def proposal():
     # HITUNG DATA
     # ======================
     total = len(data)
-    valid = len([d for d in data if d[3] == 'Selesai'])
-    ditolak = len([d for d in data if d[3] == 'Ditolak'])
+    valid = len([d for d in data if str(d[3] or "").strip().lower() == 'selesai'])
+    ditolak = len([d for d in data if str(d[3] or "").strip().lower() == 'ditolak'])
 
     # ======================
     # FORMAT DATA
@@ -76,6 +112,7 @@ def proposal():
             "kelayakan": d[4],
             "urgensi": d[5],
             "nama_komoditas": d[6] or "-",
+            "catatan_ocr": d[7] or "-",
             "ai": "✔" if d[4] > 0 else "-"
         })
 
@@ -166,21 +203,36 @@ def delete_proposal(id_proposal):
 @admin_bp.route("/clustering")
 def clustering():
     cur = mysql.connection.cursor()
+    has_komoditas = _has_komoditas_schema(cur)
 
-    cur.execute("""
-        SELECT 
-            pm.id_proposal,
-            pm.luas_lahan,
-            pm.jumlah_bantuan_sebelumnya,
-            pm.pagu_anggaran,
-            ha.skor_kelayakan,
-            ha.skor_urgensi,
-            k.nama_komoditas
-        FROM proposal_metrik pm
-        JOIN hasil_ai ha ON pm.id_proposal = ha.id_proposal
-        JOIN proposal p ON pm.id_proposal = p.id_proposal
-        JOIN komoditas k ON p.id_komoditas = k.id
-    """)
+    if has_komoditas:
+        cur.execute("""
+            SELECT 
+                pm.id_proposal,
+                pm.luas_lahan,
+                pm.jumlah_bantuan_sebelumnya,
+                pm.pagu_anggaran,
+                ha.skor_kelayakan,
+                ha.skor_urgensi,
+                k.nama_komoditas
+            FROM proposal_metrik pm
+            JOIN hasil_ai ha ON pm.id_proposal = ha.id_proposal
+            JOIN proposal p ON pm.id_proposal = p.id_proposal
+            JOIN komoditas k ON p.id_komoditas = k.id
+        """)
+    else:
+        cur.execute("""
+            SELECT 
+                pm.id_proposal,
+                pm.luas_lahan,
+                pm.jumlah_bantuan_sebelumnya,
+                pm.pagu_anggaran,
+                ha.skor_kelayakan,
+                ha.skor_urgensi,
+                'Tanpa Komoditas' AS nama_komoditas
+            FROM proposal_metrik pm
+            JOIN hasil_ai ha ON pm.id_proposal = ha.id_proposal
+        """)
 
     rows = cur.fetchall()
 
@@ -222,19 +274,33 @@ def clustering():
 @admin_bp.route("/hasil-clustering")
 def hasil_clustering():
     cur = mysql.connection.cursor()
+    has_komoditas = _has_komoditas_schema(cur)
 
-    cur.execute("""
-        SELECT 
-            p.id_proposal,
-            k.nama_komoditas,
-            kt.nama_kelompok,
-            h.cluster,
-            h.kategori_prioritas
-        FROM hasil_clustering h
-        JOIN proposal p ON h.id_proposal = p.id_proposal
-        LEFT JOIN kelompok_tani kt ON p.id_kelompok = kt.id_kelompok
-        LEFT JOIN komoditas k ON p.id_komoditas = k.id
-    """)
+    if has_komoditas:
+        cur.execute("""
+            SELECT 
+                p.id_proposal,
+                k.nama_komoditas,
+                kt.nama_kelompok,
+                h.cluster,
+                h.kategori_prioritas
+            FROM hasil_clustering h
+            JOIN proposal p ON h.id_proposal = p.id_proposal
+            LEFT JOIN kelompok_tani kt ON p.id_kelompok = kt.id_kelompok
+            LEFT JOIN komoditas k ON p.id_komoditas = k.id
+        """)
+    else:
+        cur.execute("""
+            SELECT 
+                p.id_proposal,
+                '-' AS nama_komoditas,
+                kt.nama_kelompok,
+                h.cluster,
+                h.kategori_prioritas
+            FROM hasil_clustering h
+            JOIN proposal p ON h.id_proposal = p.id_proposal
+            LEFT JOIN kelompok_tani kt ON p.id_kelompok = kt.id_kelompok
+        """)
 
     data = cur.fetchall()
     cur.close()

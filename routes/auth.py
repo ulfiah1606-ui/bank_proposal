@@ -47,19 +47,6 @@ def login(role):
                 session["nip_penyuluh"] = user["nip"]
                 session["wilayah_binaan"] = user["wilayah_binaan"]
 
-                # Ambil TTD dari tabel penyuluh (jika ada)
-                if user["id_penyuluh"]:
-                    cur2 = mysql.connection.cursor(DictCursor)
-                    cur2.execute("""
-                        SELECT ttd_penyuluh
-                        FROM penyuluh
-                        WHERE id_penyuluh = %s
-                    """, (user["id_penyuluh"],))
-                    profil = cur2.fetchone()
-                    cur2.close()
-                    if profil:
-                        session["ttd_penyuluh"] = profil["ttd_penyuluh"]
-
                 return redirect("/penyuluh/dashboard")
 
         template = "admin/login.html" if role == "admin" else "penyuluh/login.html"

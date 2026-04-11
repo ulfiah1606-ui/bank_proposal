@@ -126,6 +126,25 @@ body{
 .btn-ttd:hover{
     background:#0f5132;
 }
+
+.ttd-preview{
+    max-width:240px;
+    max-height:90px;
+    border:1px solid #ced4da;
+    border-radius:8px;
+    background:#fff;
+    padding:6px;
+}
+
+#ttdCanvasPenyuluh{
+    border:1px solid #adb5bd;
+    border-radius:8px;
+    background:#fff;
+    width:100%;
+    max-width:520px;
+    height:180px;
+    touch-action:none;
+}
 </style>
 
 <div class="dashboard-wrapper">
@@ -136,9 +155,23 @@ body{
             <h3>Dashboard Penyuluh Pertanian</h3>
             <p>Selamat datang, <b>{{ nama }}</b></p>
             <p>NIP Penyuluh: <b>{{ nip }}</b></p>
+
+            {% if ttd_penyuluh %}
+            <p class="mb-2">TTD Akun Saat Ini:</p>
+            <img src="{{ ttd_penyuluh }}" class="ttd-preview" alt="TTD Penyuluh">
+            {% else %}
+            <p class="mb-0"><span class="badge bg-warning text-dark">TTD akun belum disimpan</span></p>
+            {% endif %}
         </div>
 
-        <div>
+        <div class="d-flex flex-column gap-2 align-items-end">
+            <button type="button"
+                    class="btn btn-light btn-modern"
+                    data-bs-toggle="modal"
+                    data-bs-target="#modalTtdAkun">
+                {% if ttd_penyuluh %}Ubah TTD Akun{% else %}Tambah TTD Akun{% endif %}
+            </button>
+
             <a href="{{ url_for('penyuluh.logout') }}"
                class="btn btn-light btn-modern">
                Logout
@@ -218,10 +251,10 @@ body{
                                    🔍 Lihat
                                 </a>
 
-                                {% if not d.nama_ppl %}
+                                {% if not d.ttd_ppl %}
                                     <a href="{{ url_for('penyuluh.ttd_proposal', id_proposal=d.id_proposal) }}"
                                        class="btn btn-ttd btn-modern"
-                                       onclick="return confirm('Yakin ingin menandatangani proposal ini?')">
+                                       onclick="return confirm('Yakin ingin menandatangani proposal ini menggunakan TTD akun Anda?')">
                                        ✍️ TTD
                                     </a>
                                 {% else %}
@@ -247,5 +280,120 @@ body{
     </div>
 
 </div>
+
+<div class="modal fade" id="modalTtdAkun" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{% if ttd_penyuluh %}Ubah TTD Akun Penyuluh{% else %}Tambah TTD Akun Penyuluh{% endif %}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-2">TTD ini akan dipakai otomatis saat klik tombol <b>TTD</b> di proposal.</p>
+
+                <canvas id="ttdCanvasPenyuluh" width="520" height="180"></canvas>
+
+                <div class="d-flex gap-2 mt-3">
+                    <button type="button" class="btn btn-secondary" id="clearTtdAkun">Ulangi TTD</button>
+                </div>
+
+                <form method="POST" action="{{ url_for('penyuluh.simpan_ttd_akun') }}" class="mt-3" id="formTtdAkun">
+                    <input type="hidden" name="signature" id="signatureAkunPenyuluh">
+                    <button type="submit" class="btn btn-success">Simpan TTD Akun</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const canvas = document.getElementById("ttdCanvasPenyuluh");
+    const ctx = canvas.getContext("2d");
+    const signatureInput = document.getElementById("signatureAkunPenyuluh");
+    const form = document.getElementById("formTtdAkun");
+    const clearBtn = document.getElementById("clearTtdAkun");
+    const existingSignature = {{ (ttd_penyuluh or '')|tojson }};
+
+    let drawing = false;
+    let hasStroke = false;
+
+    function drawExistingSignature() {
+        if (!existingSignature) {
+            return;
+        }
+        const img = new Image();
+        img.onload = function () {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            hasStroke = true;
+        };
+        img.src = existingSignature;
+    }
+
+    function pointFromEvent(e) {
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+            x: (clientX - rect.left) * (canvas.width / rect.width),
+            y: (clientY - rect.top) * (canvas.height / rect.height)
+        };
+    }
+
+    function startDraw(e) {
+        e.preventDefault();
+        drawing = true;
+        const p = pointFromEvent(e);
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+    }
+
+    function moveDraw(e) {
+        if (!drawing) {
+            return;
+        }
+        e.preventDefault();
+        const p = pointFromEvent(e);
+        ctx.lineWidth = 2;
+        ctx.lineCap = "round";
+        ctx.strokeStyle = "#111";
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+        hasStroke = true;
+    }
+
+    function endDraw() {
+        drawing = false;
+        ctx.beginPath();
+    }
+
+    canvas.addEventListener("mousedown", startDraw);
+    canvas.addEventListener("mousemove", moveDraw);
+    canvas.addEventListener("mouseup", endDraw);
+    canvas.addEventListener("mouseleave", endDraw);
+
+    canvas.addEventListener("touchstart", startDraw, { passive: false });
+    canvas.addEventListener("touchmove", moveDraw, { passive: false });
+    canvas.addEventListener("touchend", endDraw);
+
+    clearBtn.addEventListener("click", function () {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        hasStroke = false;
+        signatureInput.value = "";
+    });
+
+    form.addEventListener("submit", function (e) {
+        if (!hasStroke) {
+            e.preventDefault();
+            alert("Silakan tanda tangan dulu sebelum disimpan.");
+            return;
+        }
+        signatureInput.value = canvas.toDataURL("image/png");
+    });
+
+    drawExistingSignature();
+})();
+</script>
 
 {% endblock %}

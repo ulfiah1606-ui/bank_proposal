@@ -203,8 +203,8 @@ body{background:#ccc;}
     <div class="section-title">Lampiran</div>
 
     <b>Foto KTP Ketua</b><br>
-    {% if proposal.ktp_ketua %}
-        <img src="{{ url_for('static', filename='uploads/' + proposal.ktp_ketua) }}" width="300">
+    {% if proposal.ktp_ketua_src %}
+        <img src="{{ proposal.ktp_ketua_src }}" width="300">
     {% else %}
         Tidak ada file
     {% endif %}
@@ -212,8 +212,8 @@ body{background:#ccc;}
     <br><br>
 
     <b>Screenshot Simluhtan</b><br>
-    {% if proposal.simluhtan %}
-        <img src="{{ url_for('static', filename='uploads/' + proposal.simluhtan) }}" width="300">
+    {% if proposal.simluhtan_src %}
+        <img src="{{ proposal.simluhtan_src }}" width="300">
     {% else %}
         Tidak ada file
     {% endif %}
@@ -223,8 +223,8 @@ body{background:#ccc;}
         <div class="ttd-box">
             Ketua Poktan<br><br>
 
-            {% if proposal.ttd_ketua %}
-                <img src="{{ url_for('static', filename='ttd/' + proposal.ttd_ketua) }}">
+            {% if proposal.ttd_poktan_src %}
+                <img src="{{ proposal.ttd_poktan_src }}">
             {% endif %}
 
             <br><br>
@@ -235,8 +235,10 @@ body{background:#ccc;}
         <div class="ttd-box">
             Penyuluh Pertanian<br><br>
 
-            {% if proposal.ttd_ppl %}
-                <img src="{{ url_for('static', filename='ttd/' + proposal.ttd_ppl) }}">
+            {% if proposal.ttd_ppl_src %}
+                <img src="{{ proposal.ttd_ppl_src }}">
+            {% elif proposal.ttd_ppl_text %}
+                <div><i>{{ proposal.ttd_ppl_text }}</i></div>
             {% endif %}
 
             <br><br>
