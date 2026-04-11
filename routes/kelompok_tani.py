@@ -4,6 +4,7 @@ from datetime import datetime
 import uuid
 import re
 import os
+import shutil
 from werkzeug.utils import secure_filename
 
 try:
@@ -28,10 +29,19 @@ TESSERACT_WINDOWS_PATHS = [
 
 OCR_ENGINE_READY = bool(pytesseract and Image)
 if OCR_ENGINE_READY:
+    detected_tesseract_cmd = None
     for t_path in TESSERACT_WINDOWS_PATHS:
         if os.path.exists(t_path):
-            pytesseract.pytesseract.tesseract_cmd = t_path
+            detected_tesseract_cmd = t_path
             break
+
+    if not detected_tesseract_cmd:
+        detected_tesseract_cmd = shutil.which("tesseract")
+
+    if detected_tesseract_cmd:
+        pytesseract.pytesseract.tesseract_cmd = detected_tesseract_cmd
+    else:
+        OCR_ENGINE_READY = False
 
 # ===============================
 # HELPER
