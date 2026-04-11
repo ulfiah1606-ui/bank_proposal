@@ -2,9 +2,50 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
+
     <title>{{ title if title else "Bank Proposal Pertanian - Kabupaten Gowa" }}</title>
+
+    <!-- CSS CUSTOM KAMU -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <!-- ✅ BOOTSTRAP (WAJIB) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- OPTIONAL ICON -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <style>
+        body {
+            background-color: #f4f6f9;
+        }
+
+        .header {
+            background: #198754;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .container {
+            margin-top: 20px;
+        }
+
+        .footer {
+            margin-top: 50px;
+            padding: 20px;
+            text-align: center;
+            background: #eee;
+            font-size: 14px;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            transition: 0.3s;
+        }
+    </style>
+
 </head>
+
 <body>
 
 <header class="header">
@@ -15,15 +56,17 @@
 </header>
 
 <main class="container">
+
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
-          <div class="alert alert-{{ category }}">{{ message }}</div>
+          <div class="alert alert-{{ category }} mt-2">{{ message }}</div>
         {% endfor %}
       {% endif %}
     {% endwith %}
 
     {% block content %}{% endblock %}
+
 </main>
 
 <footer class="footer">
@@ -32,6 +75,9 @@
         Sistem Bank Proposal Bantuan Pertanian
     </p>
 </footer>
+
+<!-- ✅ JS BOOTSTRAP -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 </html>

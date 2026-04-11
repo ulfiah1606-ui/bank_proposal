@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<h3>📊 Hasil Clustering</h3>
+
+<table class="table table-bordered text-center">
+<tr>
+<th>ID</th>
+<th>Kelompok</th>
+<th>Cluster</th>
+<th>Prioritas</th>
+</tr>
+
+{% for row in data %}
+<tr>
+<td>{{ row[0] }}</td>
+<td>{{ row[2] }}</td>
+<td>{{ row[3] }}</td>
+<td>
+{% if row[4] == "Prioritas 1" %}
+<span class="badge bg-danger">🔥 Tinggi</span>
+{% elif row[4] == "Prioritas 2" %}
+<span class="badge bg-warning">Sedang</span>
+{% else %}
+<span class="badge bg-success">Rendah</span>
+{% endif %}
+</td>
+</tr>
+{% endfor %}
+
+</table>
+
+{% endblock %}
