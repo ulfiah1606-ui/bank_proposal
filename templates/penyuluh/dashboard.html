@@ -234,40 +234,51 @@ table td {
             📋 Proposal Wilayah Binaan
         </h4>
 
-        <div class="card-filter">
+        <form method="GET">
+
+<div class="card-filter">
     <div class="row g-3 align-items-end">
 
         <!-- Kecamatan -->
         <div class="col-md-4">
             <label>Kecamatan</label>
-            <select id="filterKecamatan" class="form-control">
-                <option value="">Semua Kecamatan</option>
-                {% for kec in kecamatan_list %}
-                <option value="{{ kec.id }}">{{ kec.nama }}</option>
-                {% endfor %}
-            </select>
+            <select name="kecamatan" id="filterKecamatan" class="form-control">
+    <option value="">Semua Kecamatan</option>
+    {% for kec in kecamatan_list %}
+        <option value="{{ kec.kecamatan }}">
+            {{ kec.kecamatan }}
+        </option>
+    {% endfor %}
+</select>
+
+<select name="desa" id="filterDesa" class="form-control">
+    <option value="">Semua Desa</option>
+</select>
         </div>
 
         <!-- Desa -->
         <div class="col-md-4">
             <label>Desa</label>
-            <select id="filterDesa" class="form-control">
+            <select name="desa" class="form-control">
                 <option value="">Semua Desa</option>
             </select>
         </div>
 
         <!-- Tombol -->
         <div class="col-md-4 d-flex gap-2">
-            <button onclick="applyFilter()" class="btn btn-primary w-50">
+            <button type="submit" class="btn btn-primary w-50">
                 🔍 Filter
             </button>
-            <button onclick="resetFilter()" class="btn btn-secondary w-50">
+
+            <a href="/penyuluh/dashboard" class="btn btn-secondary w-50">
                 🔄 Reset
-            </button>
+            </a>
         </div>
 
     </div>
 </div>
+
+</form>
 
         {% if data %}
         <div class="table-responsive">
@@ -478,5 +489,32 @@ table td {
     drawExistingSignature();
 })();
 </script>
+
+</script>
+
+<!-- 🔥 TAMBAHKAN DI SINI -->
+<script>
+document.getElementById("filterKecamatan").addEventListener("change", function () {
+
+    let kecamatan = this.value;
+
+    fetch(`/penyuluh/get-desa/${kecamatan}`)
+    .then(response => response.json())
+    .then(data => {
+
+        let desaSelect = document.getElementById("filterDesa");
+
+        // reset isi desa
+        desaSelect.innerHTML = '<option value="">Semua Desa</option>';
+
+        data.forEach(function (item) {
+            desaSelect.innerHTML += `<option value="${item.nama}">${item.nama}</option>`;
+        });
+
+    });
+
+});
+</script>
+<!-- 🔥 SAMPAI SINI -->
 
 {% endblock %}

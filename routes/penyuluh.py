@@ -89,14 +89,15 @@ def dashboard():
     if session.get("role") != "penyuluh":
         return redirect("/login/penyuluh")
 
-    id_penyuluh = session.get("id_penyuluh")
-    wilayah_session = str(session.get("wilayah_binaan") or "").strip()
+    wilayah = session.get("wilayah_binaan")
 
     kecamatan_filter = request.args.get("kecamatan")
     desa_filter = request.args.get("desa")
-    
+
     cur = mysql.connection.cursor(DictCursor)
-    cur.execute("""
+
+    # ================= QUERY =================
+    query = """
         SELECT 
             p.id_proposal,
             kt.nama_kelompok,
@@ -108,7 +109,6 @@ def dashboard():
             hc.kategori_prioritas,
             ha.skor_kelayakan,
             ha.skor_urgensi,
-            kt.kecamatan,
             kt.desa
         FROM proposal p
         JOIN kelompok_tani kt 
@@ -117,13 +117,38 @@ def dashboard():
             ON p.id_proposal = ha.id_proposal
         LEFT JOIN hasil_clustering hc 
             ON p.id_proposal = hc.id_proposal
-        WHERE kt.kecamatan = %s
-        ORDER BY p.tanggal_pengajuan DESC
-    """, (wilayah,))
+        WHERE 1=1
+    """
 
+    params = []
+    
+    # ================= FILTER =================
+    if kecamatan_filter:
+        query += " AND kt.kecamatan = %s"
+        params.append(kecamatan_filter)
+    
+    else:
+        query += " AND kt.kecamatan = %s"
+        params.append(wilayah)
+
+    if desa_filter:
+        query += " AND kt.desa = %s"
+        params.append(desa_filter)
+
+    # ================= ORDER =================
+    query += " ORDER BY p.tanggal_pengajuan DESC"
+
+    cur.execute(query, tuple(params))
     data = cur.fetchall()
-    id_penyuluh = session.get("id_penyuluh")
+
+    # ================= DROPDOWN KECAMATAN =================
+    cur.execute("SELECT DISTINCT kecamatan FROM kelompok_tani")
+    kecamatan_list = cur.fetchall()
+
+    # ================= TTD =================
     profil_ttd = None
+    id_penyuluh = session.get("id_penyuluh")
+
     if id_penyuluh:
         cur.execute("""
             SELECT ttd_penyuluh
@@ -135,16 +160,13 @@ def dashboard():
 
     cur.close()
 
-    has_ttd_profil = bool(profil_ttd and str(profil_ttd).strip())
-
     return render_template(
         "penyuluh/dashboard.html",
         data=data,
         kecamatan_list=kecamatan_list,
         nama=session.get("nama_penyuluh"),
         nip=session.get("nip_penyuluh"),
-        ttd_penyuluh=profil_ttd,
-        has_ttd_profil=has_ttd_profil
+        ttd_penyuluh=profil_ttd
     )
 
 
@@ -345,11 +367,10 @@ def get_desa(kecamatan):
     cur = mysql.connection.cursor(DictCursor)
 
     cur.execute("""
-        SELECT id_desa, desa
-        FROM kelompok_tani
-        WHERE kecamatan = %s
-        GROUP BY desa
-    """, (kecamatan,))
+    SELECT DISTINCT desa
+    FROM kelompok_tani
+    WHERE kecamatan = %s
+""", (kecamatan,))
 
     data = cur.fetchall()
     cur.close()
