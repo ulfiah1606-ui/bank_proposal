@@ -7,6 +7,43 @@ import json
 penyuluh_bp = Blueprint("penyuluh", __name__, url_prefix="/penyuluh")
 
 
+def _normalize_wilayah_text(value):
+    if value is None:
+        return ""
+    text = str(value).strip().lower()
+    return " ".join(text.split())
+
+
+def _normalize_wilayah_key(value):
+    text = _normalize_wilayah_text(value)
+    text = text.replace("kabupaten", "")
+    text = text.replace("kecamatan", "")
+    text = text.replace("kab.", "")
+    text = text.replace("kec.", "")
+    return "".join(text.split())
+
+
+def _wilayah_matches(wilayah_binaan, kecamatan, kabupaten):
+    wilayah_key = _normalize_wilayah_key(wilayah_binaan)
+    if not wilayah_key:
+        return True
+
+    kecamatan_key = _normalize_wilayah_key(kecamatan)
+    kabupaten_key = _normalize_wilayah_key(kabupaten)
+
+    candidates = [k for k in (kecamatan_key, kabupaten_key) if k]
+    if not candidates:
+        return False
+
+    for candidate in candidates:
+        if wilayah_key == candidate:
+            return True
+        if wilayah_key in candidate or candidate in wilayah_key:
+            return True
+
+    return False
+
+
 def _normalize_asset_path(path_value):
     if not path_value:
         return None
@@ -52,16 +89,19 @@ def dashboard():
     if session.get("role") != "penyuluh":
         return redirect("/login/penyuluh")
 
-    wilayah = session.get("wilayah_binaan")
+    id_penyuluh = session.get("id_penyuluh")
+    wilayah_session = str(session.get("wilayah_binaan") or "").strip()
 
     kecamatan_filter = request.args.get("kecamatan")
     desa_filter = request.args.get("desa")
     
     cur = mysql.connection.cursor(DictCursor)
-    query = """
+    cur.execute("""
         SELECT 
             p.id_proposal,
             kt.nama_kelompok,
+            kt.kecamatan,
+            kt.kabupaten,
             p.status,
             p.nama_ppl,
             p.ttd_ppl,
@@ -78,28 +118,9 @@ def dashboard():
         LEFT JOIN hasil_clustering hc 
             ON p.id_proposal = hc.id_proposal
         WHERE kt.kecamatan = %s
-    """
-    params = [wilayah]
+        ORDER BY p.tanggal_pengajuan DESC
+    """, (wilayah,))
 
-# FILTER KECAMATAN
-    if kecamatan_filter:
-        query += " AND kt.kecamatan = %s"
-        params.append(kecamatan_filter)
-
-    # FILTER DESA
-    if desa_filter:
-        query += " AND kt.desa = %s"
-        params.append(desa_filter)
-
-    query += " ORDER BY p.tanggal_pengajuan DESC"
-
-    cur.execute(query, tuple(params))
-    data = cur.fetchall()
-
-    # ambil list kecamatan
-    cur.execute("SELECT DISTINCT kecamatan FROM kelompok_tani")
-    kecamatan_list = cur.fetchall()
-    
     data = cur.fetchall()
     id_penyuluh = session.get("id_penyuluh")
     profil_ttd = None

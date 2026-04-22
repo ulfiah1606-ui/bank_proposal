@@ -15,6 +15,98 @@
 <p><b>Kategori Prioritas:</b> {{ data.kategori }}</p>
 <p><b>Skor Kelayakan:</b> {{ data.kelayakan }}</p>
 <p><b>Skor Urgensi:</b> {{ data.urgensi }}</p>
+
+<p><b>Catatan OCR:</b></p>
+<div class="alert alert-{{ data.ocr.summary_class }} py-2">
+    {{ data.ocr.summary }}
+</div>
+
+{% set is_ditolak = (data.status or '')|lower == 'ditolak' %}
+{% if is_ditolak and (data.ocr.ktp_reason or data.ocr.simluhtan_reason or data.ocr.ocr_inactive) %}
+<ul>
+    {% if data.ocr.ktp_reason %}
+    <li class="text-{{ data.ocr.ktp_class }}">
+        <b>KTP:</b> {{ data.ocr.ktp_reason }}
+        {% if data.ocr.ktp_found_keywords %}
+        <div class="mt-1">
+            <span class="small fw-semibold text-success">Terdeteksi:</span>
+            {% for keyword in data.ocr.ktp_found_keywords %}
+            <span class="badge rounded-pill text-bg-success me-1">{{ keyword }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if data.ocr.ktp_missing_keywords %}
+        <div class="mt-1">
+            <span class="small fw-semibold text-danger">Tidak terdeteksi:</span>
+            {% for keyword in data.ocr.ktp_missing_keywords %}
+            <span class="badge rounded-pill text-bg-danger me-1">{{ keyword }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if data.ocr.ktp_unknown_keywords %}
+        <div class="mt-1">
+            <span class="small fw-semibold text-secondary">Tidak dinilai:</span>
+            {% for keyword in data.ocr.ktp_unknown_keywords %}
+            <span class="badge rounded-pill text-bg-secondary me-1">{{ keyword }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </li>
+    {% elif data.ocr.ktp_unknown_keywords %}
+    <li class="text-secondary">
+        <b>KTP:</b> OCR tidak aktif, keyword belum dapat dinilai.
+        <div class="mt-1">
+            <span class="small fw-semibold text-secondary">Tidak dinilai:</span>
+            {% for keyword in data.ocr.ktp_unknown_keywords %}
+            <span class="badge rounded-pill text-bg-secondary me-1">{{ keyword }}</span>
+            {% endfor %}
+        </div>
+    </li>
+    {% endif %}
+    {% if data.ocr.simluhtan_reason %}
+    <li class="text-{{ data.ocr.simluhtan_class }}">
+        <b>Simluhtan:</b> {{ data.ocr.simluhtan_reason }}
+        {% if data.ocr.simluhtan_found_keywords %}
+        <div class="mt-1">
+            <span class="small fw-semibold text-success">Terdeteksi:</span>
+            {% for keyword in data.ocr.simluhtan_found_keywords %}
+            <span class="badge rounded-pill text-bg-success me-1">{{ keyword }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if data.ocr.simluhtan_missing_keywords %}
+        <div class="mt-1">
+            <span class="small fw-semibold text-danger">Tidak terdeteksi:</span>
+            {% for keyword in data.ocr.simluhtan_missing_keywords %}
+            <span class="badge rounded-pill text-bg-danger me-1">{{ keyword }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if data.ocr.simluhtan_unknown_keywords %}
+        <div class="mt-1">
+            <span class="small fw-semibold text-secondary">Tidak dinilai:</span>
+            {% for keyword in data.ocr.simluhtan_unknown_keywords %}
+            <span class="badge rounded-pill text-bg-secondary me-1">{{ keyword }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </li>
+    {% elif data.ocr.simluhtan_unknown_keywords %}
+    <li class="text-secondary">
+        <b>Simluhtan:</b> OCR tidak aktif, keyword belum dapat dinilai.
+        <div class="mt-1">
+            <span class="small fw-semibold text-secondary">Tidak dinilai:</span>
+            {% for keyword in data.ocr.simluhtan_unknown_keywords %}
+            <span class="badge rounded-pill text-bg-secondary me-1">{{ keyword }}</span>
+            {% endfor %}
+        </div>
+    </li>
+    {% endif %}
+</ul>
+{% endif %}
+{% elif not_found %}
+<hr>
+<div class="alert alert-warning">ID proposal tidak ditemukan.</div>
 {% endif %}
 
 {% endblock %}
