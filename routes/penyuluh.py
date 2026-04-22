@@ -7,6 +7,43 @@ import json
 penyuluh_bp = Blueprint("penyuluh", __name__, url_prefix="/penyuluh")
 
 
+def _normalize_wilayah_text(value):
+    if value is None:
+        return ""
+    text = str(value).strip().lower()
+    return " ".join(text.split())
+
+
+def _normalize_wilayah_key(value):
+    text = _normalize_wilayah_text(value)
+    text = text.replace("kabupaten", "")
+    text = text.replace("kecamatan", "")
+    text = text.replace("kab.", "")
+    text = text.replace("kec.", "")
+    return "".join(text.split())
+
+
+def _wilayah_matches(wilayah_binaan, kecamatan, kabupaten):
+    wilayah_key = _normalize_wilayah_key(wilayah_binaan)
+    if not wilayah_key:
+        return True
+
+    kecamatan_key = _normalize_wilayah_key(kecamatan)
+    kabupaten_key = _normalize_wilayah_key(kabupaten)
+
+    candidates = [k for k in (kecamatan_key, kabupaten_key) if k]
+    if not candidates:
+        return False
+
+    for candidate in candidates:
+        if wilayah_key == candidate:
+            return True
+        if wilayah_key in candidate or candidate in wilayah_key:
+            return True
+
+    return False
+
+
 def _normalize_asset_path(path_value):
     if not path_value:
         return None
@@ -52,13 +89,38 @@ def dashboard():
     if session.get("role") != "penyuluh":
         return redirect("/login/penyuluh")
 
-    wilayah = session.get("wilayah_binaan")
+    id_penyuluh = session.get("id_penyuluh")
+    wilayah_session = str(session.get("wilayah_binaan") or "").strip()
 
     cur = mysql.connection.cursor(DictCursor)
-    cur.execute("""
+    profil_ttd = None
+    wilayah_profil = ""
+
+    if id_penyuluh:
+        cur.execute("""
+            SELECT ttd_penyuluh, kecamatan
+            FROM penyuluh
+            WHERE id_penyuluh = %s
+        """, (id_penyuluh,))
+        profil = cur.fetchone()
+        if profil:
+            profil_ttd = profil.get("ttd_penyuluh")
+            wilayah_profil = str(profil.get("kecamatan") or "").strip()
+
+    wilayah = wilayah_session
+    if wilayah_profil and (
+        not wilayah
+        or _normalize_wilayah_text(wilayah) != _normalize_wilayah_text(wilayah_profil)
+    ):
+        wilayah = wilayah_profil
+        session["wilayah_binaan"] = wilayah_profil
+
+    cur.execute(f"""
         SELECT 
             p.id_proposal,
             kt.nama_kelompok,
+            kt.kecamatan,
+            kt.kabupaten,
             p.status,
             p.nama_ppl,
             p.ttd_ppl,
@@ -72,21 +134,18 @@ def dashboard():
             ON p.id_proposal = ha.id_proposal
         LEFT JOIN hasil_clustering hc 
             ON p.id_proposal = hc.id_proposal
-        WHERE kt.kecamatan = %s
         ORDER BY p.tanggal_pengajuan DESC
-    """, (wilayah,))
+    """)
 
-    data = cur.fetchall()
-    id_penyuluh = session.get("id_penyuluh")
-    profil_ttd = None
-    if id_penyuluh:
-        cur.execute("""
-            SELECT ttd_penyuluh
-            FROM penyuluh
-            WHERE id_penyuluh = %s
-        """, (id_penyuluh,))
-        profil = cur.fetchone()
-        profil_ttd = profil.get("ttd_penyuluh") if profil else None
+    all_rows = cur.fetchall()
+    if wilayah:
+        data = [
+            row for row in all_rows
+            if _wilayah_matches(wilayah, row.get("kecamatan"), row.get("kabupaten"))
+        ]
+    else:
+        flash("Wilayah binaan penyuluh belum diatur. Menampilkan semua proposal.", "warning")
+        data = all_rows
 
     cur.close()
 
