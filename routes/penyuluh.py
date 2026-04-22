@@ -54,8 +54,11 @@ def dashboard():
 
     wilayah = session.get("wilayah_binaan")
 
+    kecamatan_filter = request.args.get("kecamatan")
+    desa_filter = request.args.get("desa")
+    
     cur = mysql.connection.cursor(DictCursor)
-    cur.execute("""
+    query = """
         SELECT 
             p.id_proposal,
             kt.nama_kelompok,
@@ -64,7 +67,9 @@ def dashboard():
             p.ttd_ppl,
             hc.kategori_prioritas,
             ha.skor_kelayakan,
-            ha.skor_urgensi
+            ha.skor_urgensi,
+            kt.kecamatan,
+            kt.desa
         FROM proposal p
         JOIN kelompok_tani kt 
             ON p.id_kelompok = kt.id_kelompok
@@ -73,9 +78,28 @@ def dashboard():
         LEFT JOIN hasil_clustering hc 
             ON p.id_proposal = hc.id_proposal
         WHERE kt.kecamatan = %s
-        ORDER BY p.tanggal_pengajuan DESC
-    """, (wilayah,))
+    """
+    params = [wilayah]
 
+# FILTER KECAMATAN
+    if kecamatan_filter:
+        query += " AND kt.kecamatan = %s"
+        params.append(kecamatan_filter)
+
+    # FILTER DESA
+    if desa_filter:
+        query += " AND kt.desa = %s"
+        params.append(desa_filter)
+
+    query += " ORDER BY p.tanggal_pengajuan DESC"
+
+    cur.execute(query, tuple(params))
+    data = cur.fetchall()
+
+    # ambil list kecamatan
+    cur.execute("SELECT DISTINCT kecamatan FROM kelompok_tani")
+    kecamatan_list = cur.fetchall()
+    
     data = cur.fetchall()
     id_penyuluh = session.get("id_penyuluh")
     profil_ttd = None
@@ -95,6 +119,7 @@ def dashboard():
     return render_template(
         "penyuluh/dashboard.html",
         data=data,
+        kecamatan_list=kecamatan_list,
         nama=session.get("nama_penyuluh"),
         nip=session.get("nip_penyuluh"),
         ttd_penyuluh=profil_ttd,
@@ -293,6 +318,29 @@ def ttd_proposal(id_proposal):
 
     return redirect(url_for("penyuluh.dashboard"))
 
+@penyuluh_bp.route('/get-desa/<kecamatan>')
+def get_desa(kecamatan):
+
+    cur = mysql.connection.cursor(DictCursor)
+
+    cur.execute("""
+        SELECT id_desa, desa
+        FROM kelompok_tani
+        WHERE kecamatan = %s
+        GROUP BY desa
+    """, (kecamatan,))
+
+    data = cur.fetchall()
+    cur.close()
+
+    hasil = []
+    for d in data:
+        hasil.append({
+            "id": d["id_desa"] if "id_desa" in d else d["desa"],
+            "nama": d["desa"]
+        })
+
+    return json.dumps(hasil)
 
 # =====================================================
 # LOGOUT

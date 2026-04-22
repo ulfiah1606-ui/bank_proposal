@@ -145,6 +145,54 @@ body{
     height:180px;
     touch-action:none;
 }
+
+.card-filter {
+    background: #f8f9fb;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+table th {
+    background: #f1f3f6;
+    text-align: center;
+    padding: 12px;
+    border: 1px solid #ddd;
+}
+
+table td {
+    text-align: center;
+    padding: 10px;
+    border: 1px solid #ddd;
+}
+
+.badge-status {
+    background: #6c757d;
+    color: white;
+    padding: 5px 12px;
+    border-radius: 10px;
+    font-size: 12px;
+}
+
+.btn-lihat {
+    background: #2d6cdf;
+    color: white;
+    border-radius: 10px;
+    padding: 6px 15px;
+}
+
+.btn-ttd {
+    background: #198754;
+    color: white;
+    border-radius: 10px;
+    padding: 6px 15px;
+}
+
 </style>
 
 <div class="dashboard-wrapper">
@@ -185,6 +233,41 @@ body{
         <h4 class="fw-bold mb-4" style="color:#1e3c72;">
             📋 Proposal Wilayah Binaan
         </h4>
+
+        <div class="card-filter">
+    <div class="row g-3 align-items-end">
+
+        <!-- Kecamatan -->
+        <div class="col-md-4">
+            <label>Kecamatan</label>
+            <select id="filterKecamatan" class="form-control">
+                <option value="">Semua Kecamatan</option>
+                {% for kec in kecamatan_list %}
+                <option value="{{ kec.id }}">{{ kec.nama }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Desa -->
+        <div class="col-md-4">
+            <label>Desa</label>
+            <select id="filterDesa" class="form-control">
+                <option value="">Semua Desa</option>
+            </select>
+        </div>
+
+        <!-- Tombol -->
+        <div class="col-md-4 d-flex gap-2">
+            <button onclick="applyFilter()" class="btn btn-primary w-50">
+                🔍 Filter
+            </button>
+            <button onclick="resetFilter()" class="btn btn-secondary w-50">
+                🔄 Reset
+            </button>
+        </div>
+
+    </div>
+</div>
 
         {% if data %}
         <div class="table-responsive">

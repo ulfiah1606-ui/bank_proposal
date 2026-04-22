@@ -46,22 +46,21 @@ def proposal():
     # ======================
     # DATA PROPOSAL
     # ======================
-    cur.execute(f"""
-        SELECT 
-            p.id_proposal,
-            kt.nama_kelompok,
-            p.tanggal_pengajuan,
-            p.status,
-            IFNULL(h.skor_kelayakan, 0),
-            IFNULL(h.skor_urgensi, 0),
-            {komoditas_select},
-            {catatan_ocr_select}
-        FROM proposal p
-        LEFT JOIN kelompok_tani kt ON p.id_kelompok = kt.id_kelompok
-        LEFT JOIN hasil_ai h ON p.id_proposal = h.id_proposal
-        {komoditas_join}
-        ORDER BY p.tanggal_pengajuan DESC
-    """)
+    cur.execute("""
+    SELECT
+    p.id_proposal,
+    kt.komoditas,
+    kt.nama_kelompok,
+    p.tanggal_pengajuan,
+    p.status,
+    IFNULL(h.skor_kelayakan, 0) AS skor_kelayakan,
+    IFNULL(h.skor_urgensi, 0) AS skor_urgensi,
+    IFNULL(p.catatan_ocr, '-') AS catatan_ocr
+FROM proposal p
+LEFT JOIN kelompok_tani kt ON p.id_kelompok = kt.id_kelompok
+LEFT JOIN hasil_ai h ON p.id_proposal = h.id_proposal
+ORDER BY p.tanggal_pengajuan DESC
+""")
     data = cur.fetchall()
 
     # ======================
@@ -96,8 +95,8 @@ def proposal():
     # HITUNG DATA
     # ======================
     total = len(data)
-    valid = len([d for d in data if str(d[3] or "").strip().lower() == 'selesai'])
-    ditolak = len([d for d in data if str(d[3] or "").strip().lower() == 'ditolak'])
+    valid = len([d for d in data if str(d[4] or "").strip().lower() == 'selesai'])
+    ditolak = len([d for d in data if str(d[4] or "").strip().lower() == 'ditolak'])
 
     # ======================
     # FORMAT DATA
@@ -106,14 +105,14 @@ def proposal():
     for d in data:
         proposals.append({
             "id_proposal": d[0],
-            "nama_kelompok": d[1],
-            "tanggal_pengajuan": d[2],
-            "status": d[3],
-            "kelayakan": d[4],
-            "urgensi": d[5],
-            "nama_komoditas": d[6] or "-",
+            "nama_komoditas": d[1] or "-",
+            "nama_kelompok": d[2],
+            "tanggal_pengajuan": d[3],
+            "status": d[4],
+            "kelayakan": d[5],
+            "urgensi": d[6],
             "catatan_ocr": d[7] or "-",
-            "ai": "✔" if d[4] > 0 else "-"
+            "ai": "✔" if d[6] and float(d[6]) > 0 else "-"
         })
 
     # ======================

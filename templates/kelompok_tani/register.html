@@ -34,30 +34,42 @@
 
         <label>Nama Kelompok</label>
         <input type="text" name="nama_kelompok" required
-               style="width:100%;padding:8px;margin-bottom:15px;">
+               style="width:100%;padding:10px;margin-bottom:15px;border-radius:6px;">
 
         <label>Ketua Kelompok</label>
         <input type="text" name="nama_ketua" required
-               style="width:100%;padding:8px;margin-bottom:15px;">
+               style="width:100%;padding:10px;margin-bottom:15px;border-radius:6px;">
 
         <label>Kecamatan</label>
         <input type="text" name="kecamatan" required
-               style="width:100%;padding:8px;margin-bottom:15px;">
+               style="width:100%;padding:10px;margin-bottom:15px;border-radius:6px;">
 
         <label>Desa</label>
         <input type="text" name="desa" required
-               style="width:100%;padding:8px;margin-bottom:15px;">
+               style="width:100%;padding:10px;margin-bottom:15px;border-radius:6px;">
 
+        <!-- ✅ KOMODITAS -->
+        <label>Komoditas</label>
+        <select name="komoditas" required
+                style="width:100%;padding:10px;margin-bottom:15px;border-radius:6px;">
+            <option value="">-- Pilih Komoditas --</option>
+            <option value="padi">Padi</option>
+            <option value="jagung">Jagung</option>
+            <option value="kentang">Kentang</option>
+            <option value="cabai">Cabai</option>
+        </select>
+
+        <!-- ✅ JUMLAH ANGGOTA -->
         <label>Jumlah Anggota</label>
         <input type="number" name="jumlah_anggota" required
-               style="width:100%;padding:8px;margin-bottom:15px;">
+               style="width:100%;padding:10px;margin-bottom:15px;border-radius:6px;">
 
         <label>Password</label>
         <input type="password" name="password" required
-               style="width:100%;padding:8px;margin-bottom:20px;">
+               style="width:100%;padding:10px;margin-bottom:20px;border-radius:6px;">
 
         <button type="submit"
-                style="width:100%;padding:10px;
+                style="width:100%;padding:12px;
                        background:#123d8b;color:white;
                        border:none;border-radius:6px;">
             Daftar

@@ -123,14 +123,15 @@ def register_kelompok():
             # Insert ke tabel kelompok_tani (profil)
             cur.execute("""
                 INSERT INTO kelompok_tani
-                (nama_kelompok, nama_ketua, kecamatan, desa,
+                (nama_kelompok, nama_ketua, kecamatan, desa, komoditas,
                  jumlah_anggota, created_at, password)
-                VALUES (%s,%s,%s,%s,%s,NOW(),%s)
+                VALUES (%s,%s,%s,%s,%s,%s,NOW(),%s)
             """, (
                 request.form.get("nama_kelompok"),
                 request.form.get("nama_ketua"),
                 request.form.get("kecamatan"),
                 request.form.get("desa"),
+                request.form.get("komoditas"),
                 request.form.get("jumlah_anggota"),
                 request.form.get("password")
             ))
@@ -138,6 +139,7 @@ def register_kelompok():
             id_kelompok_baru = cur.lastrowid
 
             # Insert ke tabel users (autentikasi)
+
             cur.execute("""
                 INSERT INTO users
                 (nama, username, password, role, id_kelompok, wilayah_binaan)
@@ -151,6 +153,7 @@ def register_kelompok():
             ))
 
             mysql.connection.commit()
+
         except Exception as e:
             mysql.connection.rollback()
             cur.close()
@@ -165,7 +168,6 @@ def register_kelompok():
         )
 
     return render_template("kelompok_tani/register.html")
-
 
 # =====================================================
 # LOGIN KELOMPOK TANI

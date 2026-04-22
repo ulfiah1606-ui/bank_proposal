@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>User</title>
+    <style>
+        body { font-family: Arial; background: #f2f4f7; }
+        .container {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 80px;
+        }
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            width: 300px;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 6px;
+        }
+        button {
+            background: #1e3a8a;
+            color: white;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+
+<h2 style="text-align:center;">User Management</h2>
+
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <p style="color:red; text-align:center;">{{ messages[0] }}</p>
+  {% endif %}
+{% endwith %}
+
+<div class="container">
+
+    <!-- LOGIN -->
+    <div class="card">
+        <h3>Login</h3>
+        <form method="POST">
+            <input type="text" name="username" placeholder="Username" required>
+            <input type="password" name="password" placeholder="Password" required>
+            <button name="login">LOGIN</button>
+        </form>
+    </div>
+
+    <!-- REGISTER -->
+    <div class="card">
+        <h3>Register</h3>
+        <form method="POST">
+            <input type="text" name="nama" placeholder="Nama" required>
+            <input type="text" name="username" placeholder="Username" required>
+            <input type="password" name="password" placeholder="Password" required>
+
+            <select name="role" required>
+                <option value="">Pilih Role</option>
+                <option value="admin">Admin</option>
+                <option value="penyuluh">Penyuluh</option>
+                <option value="kelompok_tani">Kelompok Tani</option>
+            </select>
+
+            <button name="register">REGISTER</button>
+        </form>
+    </div>
+
+</div>
+
+</body>
+</html>
