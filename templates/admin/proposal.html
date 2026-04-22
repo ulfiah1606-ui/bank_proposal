@@ -106,6 +106,60 @@
 .blue { background: linear-gradient(135deg, #2563eb, #1e3a8a); }
 .green { background: linear-gradient(135deg, #16a34a, #065f46); }
 .red { background: linear-gradient(135deg, #dc2626, #7f1d1d); }
+.gray { background: linear-gradient(135deg, #4b5563, #111827); }
+
+.btn-archive {
+    background: #7c3aed;
+    color: white;
+}
+
+.btn-restore {
+    background: #0f766e;
+    color: white;
+}
+
+.filter-panel {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    margin: 12px 0 18px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 12px;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.filter-group label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #374151;
+}
+
+.filter-group select {
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 8px;
+    font-size: 13px;
+}
+
+.btn-reset-filter {
+    background: #374151;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    height: 38px;
+    align-self: end;
+}
 
 /* RESPONSIVE */
 @media (max-width: 768px) {
@@ -132,15 +186,79 @@
         <h4>Ditolak</h4>
         <h2>{{ ditolak }}</h2>
     </div>
+
+    <div class="card gray" onclick="scrollToArsip()">
+        <h4>Arsip</h4>
+        <h2>{{ arsip_total }}</h2>
+    </div>
 </div>
 
-<div>
-<select onchange="filterKomoditas(this.value)">
-    <option value="all">Semua</option>
-    {% for k in komoditas_list %}
-    <option value="{{ k[0]|lower }}">{{ k[0] }}</option>
-    {% endfor %}
-</select>
+{% if not archive_ready %}
+<div class="alert alert-warning">
+    Fitur arsip belum aktif di database. Jalankan file migrasi <b>migrasi_arsip_surat.sql</b> terlebih dahulu.
+</div>
+{% endif %}
+
+<div class="filter-panel" id="activeFilterPanel">
+    <div class="filter-group">
+        <label>Status</label>
+        <select id="statusFilterActive" onchange="applyActiveFilters()">
+            <option value="all">Semua</option>
+            <option value="diajukan">Diajukan</option>
+            <option value="diverifikasi penyuluh">Diverifikasi Penyuluh</option>
+            <option value="selesai">Selesai</option>
+            <option value="ditolak">Ditolak</option>
+        </select>
+    </div>
+
+    <div class="filter-group">
+        <label>Komoditas</label>
+        <select id="komoditasFilterActive" onchange="applyActiveFilters()">
+            <option value="all">Semua</option>
+            {% for k in komoditas_list %}
+            <option value="{{ k[0]|lower }}">{{ k[0] }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="filter-group">
+        <label>Kategori Waktu</label>
+        <select id="timeCategoryFilterActive" onchange="applyActiveFilters()">
+            <option value="all">Semua Waktu</option>
+            <option value="tahun-ini">Tahun Ini</option>
+            <option value="tahun-lalu">Tahun Lalu</option>
+            <option value="lebih-lama">Lebih Lama</option>
+            <option value="custom-year">Per Tahun (Pilih Tahun)</option>
+        </select>
+    </div>
+
+    <div class="filter-group">
+        <label>Tahun</label>
+        <select id="yearFilterActive" onchange="applyActiveFilters()">
+            <option value="all">Semua Tahun</option>
+        </select>
+    </div>
+
+    <div class="filter-group">
+        <label>Bulan</label>
+        <select id="monthFilterActive" onchange="applyActiveFilters()">
+            <option value="all">Semua Bulan</option>
+            <option value="01">Januari</option>
+            <option value="02">Februari</option>
+            <option value="03">Maret</option>
+            <option value="04">April</option>
+            <option value="05">Mei</option>
+            <option value="06">Juni</option>
+            <option value="07">Juli</option>
+            <option value="08">Agustus</option>
+            <option value="09">September</option>
+            <option value="10">Oktober</option>
+            <option value="11">November</option>
+            <option value="12">Desember</option>
+        </select>
+    </div>
+
+    <button type="button" class="btn-reset-filter" onclick="resetActiveFilters()">Reset Filter</button>
 </div>
 
 <div id="tableSection" class="table-box">
@@ -163,9 +281,12 @@
 
     <tbody>
         {% for p in proposals %}
+        {% set active_date = (p.tanggal_pengajuan|string) if p.tanggal_pengajuan else '' %}
         <tr class="data-row"
             data-status="{{ p.status|lower }}"
-            data-komoditas="{{ p.nama_komoditas|lower }}">
+            data-komoditas="{{ p.nama_komoditas|lower }}"
+            data-year="{{ active_date[:4] }}"
+            data-month="{{ active_date[5:7] }}">
 
             <td>{{ p.id_proposal }}</td>
             <td>{{ p.nama_komoditas }}</td>
@@ -183,6 +304,13 @@
 
             <td class="aksi">
                 <a href="{{ url_for('admin.edit_proposal', id_proposal=p.id_proposal) }}" class="btn-edit">Edit</a>
+                     {% if archive_ready and p.status and p.status|lower == 'selesai' %}
+                     <a href="{{ url_for('admin.archive_proposal', id_proposal=p.id_proposal) }}"
+                         class="btn-archive"
+                         onclick="return confirm('Arsipkan surat ini? Surat akan dipindah ke tabel arsip.')">
+                         Archive
+                     </a>
+                     {% endif %}
                 <a href="{{ url_for('admin.delete_proposal', id_proposal=p.id_proposal) }}"
                    class="btn-delete"
                    onclick="return confirm('Yakin hapus data ini?')">
@@ -197,6 +325,121 @@
 
 </div>
 
+<div id="activeFilterEmptyState" class="alert alert-info" style="display:none;">
+    Tidak ada data aktif yang sesuai dengan filter kategori.
+</div>
+
+{% if archive_ready %}
+<h3 id="arsipSection">📁 Arsip Surat</h3>
+
+<div class="filter-panel" id="archiveFilterPanel">
+    <div class="filter-group">
+        <label>Status Arsip</label>
+        <select id="statusFilterArchive" onchange="applyArchiveFilters()">
+            <option value="all">Semua</option>
+            <option value="selesai">Selesai</option>
+            <option value="diajukan">Diajukan</option>
+            <option value="ditolak">Ditolak</option>
+            <option value="diverifikasi penyuluh">Diverifikasi Penyuluh</option>
+        </select>
+    </div>
+
+    <div class="filter-group">
+        <label>Kategori Waktu Arsip</label>
+        <select id="timeCategoryFilterArchive" onchange="applyArchiveFilters()">
+            <option value="all">Semua Waktu</option>
+            <option value="tahun-ini">Tahun Ini</option>
+            <option value="tahun-lalu">Tahun Lalu</option>
+            <option value="lebih-lama">Lebih Lama</option>
+            <option value="custom-year">Per Tahun (Pilih Tahun)</option>
+        </select>
+    </div>
+
+    <div class="filter-group">
+        <label>Tahun Arsip</label>
+        <select id="yearFilterArchive" onchange="applyArchiveFilters()">
+            <option value="all">Semua Tahun</option>
+        </select>
+    </div>
+
+    <div class="filter-group">
+        <label>Bulan Arsip</label>
+        <select id="monthFilterArchive" onchange="applyArchiveFilters()">
+            <option value="all">Semua Bulan</option>
+            <option value="01">Januari</option>
+            <option value="02">Februari</option>
+            <option value="03">Maret</option>
+            <option value="04">April</option>
+            <option value="05">Mei</option>
+            <option value="06">Juni</option>
+            <option value="07">Juli</option>
+            <option value="08">Agustus</option>
+            <option value="09">September</option>
+            <option value="10">Oktober</option>
+            <option value="11">November</option>
+            <option value="12">Desember</option>
+        </select>
+    </div>
+
+    <button type="button" class="btn-reset-filter" onclick="resetArchiveFilters()">Reset Arsip</button>
+</div>
+
+<div id="archiveTableSection" class="table-box">
+<table class="custom-table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Komoditas</th>
+            <th>Kelompok</th>
+            <th>Tanggal Pengajuan</th>
+            <th>Status</th>
+            <th>Tanggal Arsip</th>
+            <th>Catatan OCR</th>
+            <th>Aksi</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for p in archived_proposals %}
+        {% set archive_date = p.archived_at if p.archived_at else p.tanggal_pengajuan %}
+        {% set archive_date_str = (archive_date|string) if archive_date else '' %}
+        <tr class="archive-row"
+            data-status="{{ p.status|lower }}"
+            data-year="{{ archive_date_str[:4] }}"
+            data-month="{{ archive_date_str[5:7] }}">
+            <td>{{ p.id_proposal }}</td>
+            <td>{{ p.nama_komoditas }}</td>
+            <td>{{ p.nama_kelompok }}</td>
+            <td>{{ p.tanggal_pengajuan }}</td>
+            <td>
+                <span class="badge {{ p.status|lower }}">
+                    {{ p.status }}
+                </span>
+            </td>
+            <td>{{ p.archived_at or '-' }}</td>
+            <td style="max-width:240px; text-align:left;">{{ p.catatan_ocr }}</td>
+            <td class="aksi">
+                <a href="{{ url_for('admin.unarchive_proposal', id_proposal=p.id_proposal) }}"
+                   class="btn-restore"
+                   onclick="return confirm('Kembalikan surat ini ke data aktif?')">
+                   Kembalikan
+                </a>
+            </td>
+        </tr>
+        {% endfor %}
+        {% if not archived_proposals %}
+        <tr id="archiveEmptyDefaultRow">
+            <td colspan="8" style="text-align:center;">Belum ada surat yang diarsipkan</td>
+        </tr>
+        {% endif %}
+    </tbody>
+</table>
+</div>
+
+<div id="archiveFilterEmptyState" class="alert alert-info" style="display:none;">
+    Tidak ada data arsip yang sesuai dengan filter kategori.
+</div>
+{% endif %}
+
 <h3>📈 Grafik Komoditas</h3>
 <canvas id="chartKomoditas"></canvas>
 
@@ -204,6 +447,78 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function(){
+
+    const currentYear = new Date().getFullYear();
+    const activeRows = Array.from(document.querySelectorAll(".data-row"));
+    const archiveRows = Array.from(document.querySelectorAll(".archive-row"));
+
+    function fillYearOptions(selectId, rows){
+        const select = document.getElementById(selectId);
+        if (!select) return;
+
+        const selected = select.value;
+        const years = [...new Set(rows
+            .map(row => (row.dataset.year || "").trim())
+            .filter(year => /^\d{4}$/.test(year)))]
+            .sort((a, b) => Number(b) - Number(a));
+
+        select.innerHTML = '<option value="all">Semua Tahun</option>';
+        years.forEach(year => {
+            const opt = document.createElement("option");
+            opt.value = year;
+            opt.textContent = year;
+            select.appendChild(opt);
+        });
+
+        if (years.includes(selected)) {
+            select.value = selected;
+        }
+    }
+
+    function matchTimeByCategory(row, category, selectedYear, selectedMonth){
+        const rowYearRaw = (row.dataset.year || "").trim();
+        const rowMonth = (row.dataset.month || "").trim();
+        const rowYear = /^\d{4}$/.test(rowYearRaw) ? Number(rowYearRaw) : null;
+
+        if (selectedMonth !== "all" && rowMonth !== selectedMonth) {
+            return false;
+        }
+
+        if (category === "all") {
+            return selectedYear === "all" || rowYearRaw === selectedYear;
+        }
+
+        if (!rowYear) {
+            return false;
+        }
+
+        if (category === "tahun-ini") {
+            return rowYear === currentYear;
+        }
+
+        if (category === "tahun-lalu") {
+            return rowYear === (currentYear - 1);
+        }
+
+        if (category === "lebih-lama") {
+            return rowYear < (currentYear - 1);
+        }
+
+        if (category === "custom-year") {
+            return selectedYear === "all" || rowYearRaw === selectedYear;
+        }
+
+        return true;
+    }
+
+    function updateEmptyState(stateElementId, visibleCount){
+        const element = document.getElementById(stateElementId);
+        if (!element) return;
+        element.style.display = visibleCount > 0 ? "none" : "block";
+    }
+
+    fillYearOptions("yearFilterActive", activeRows);
+    fillYearOptions("yearFilterArchive", archiveRows);
 
     // ==========================
     // DATA BACKEND
@@ -214,38 +529,121 @@ document.addEventListener("DOMContentLoaded", function(){
     // SHOW TABLE
     // ==========================
     window.showData = function(type){
-    document.getElementById("tableSection").style.display="block";
-
-    let ditemukan = false;
-
-    document.querySelectorAll(".data-row").forEach(r=>{
-        let s = r.dataset.status.trim().toLowerCase();
-
-        if(type === "all" || s === type){
-            r.style.display = "";
-            ditemukan = true;
-        } else {
-            r.style.display = "none";
+        const statusFilter = document.getElementById("statusFilterActive");
+        if (statusFilter) {
+            statusFilter.value = type;
         }
-    });
-
-    // kalau data kosong
-    if(!ditemukan){
-        alert("Tidak ada data untuk kategori ini");
+        applyActiveFilters();
     }
-}
+
+    window.applyActiveFilters = function(){
+        const statusValue = (document.getElementById("statusFilterActive")?.value || "all").toLowerCase();
+        const komoditasValue = (document.getElementById("komoditasFilterActive")?.value || "all").toLowerCase();
+        const timeCategory = document.getElementById("timeCategoryFilterActive")?.value || "all";
+        const yearValue = document.getElementById("yearFilterActive")?.value || "all";
+        const monthValue = document.getElementById("monthFilterActive")?.value || "all";
+
+        let visibleCount = 0;
+
+        activeRows.forEach(row => {
+            const rowStatus = (row.dataset.status || "").trim().toLowerCase();
+            const rowKomoditas = (row.dataset.komoditas || "").trim().toLowerCase();
+
+            const statusMatch = statusValue === "all" || rowStatus === statusValue;
+            const komoditasMatch = komoditasValue === "all" || rowKomoditas.includes(komoditasValue);
+            const timeMatch = matchTimeByCategory(row, timeCategory, yearValue, monthValue);
+
+            const show = statusMatch && komoditasMatch && timeMatch;
+            row.style.display = show ? "" : "none";
+            if (show) {
+                visibleCount += 1;
+            }
+        });
+
+        updateEmptyState("activeFilterEmptyState", visibleCount);
+    }
+
+    window.resetActiveFilters = function(){
+        const statusFilter = document.getElementById("statusFilterActive");
+        const komoditasFilter = document.getElementById("komoditasFilterActive");
+        const timeFilter = document.getElementById("timeCategoryFilterActive");
+        const yearFilter = document.getElementById("yearFilterActive");
+        const monthFilter = document.getElementById("monthFilterActive");
+
+        if (statusFilter) statusFilter.value = "all";
+        if (komoditasFilter) komoditasFilter.value = "all";
+        if (timeFilter) timeFilter.value = "all";
+        if (yearFilter) yearFilter.value = "all";
+        if (monthFilter) monthFilter.value = "all";
+
+        applyActiveFilters();
+    }
+
+    window.applyArchiveFilters = function(){
+        if (!archiveRows.length) {
+            updateEmptyState("archiveFilterEmptyState", 1);
+            return;
+        }
+
+        const statusValue = (document.getElementById("statusFilterArchive")?.value || "all").toLowerCase();
+        const timeCategory = document.getElementById("timeCategoryFilterArchive")?.value || "all";
+        const yearValue = document.getElementById("yearFilterArchive")?.value || "all";
+        const monthValue = document.getElementById("monthFilterArchive")?.value || "all";
+
+        let visibleCount = 0;
+        archiveRows.forEach(row => {
+            const rowStatus = (row.dataset.status || "").trim().toLowerCase();
+            const statusMatch = statusValue === "all" || rowStatus === statusValue;
+            const timeMatch = matchTimeByCategory(row, timeCategory, yearValue, monthValue);
+
+            const show = statusMatch && timeMatch;
+            row.style.display = show ? "" : "none";
+            if (show) {
+                visibleCount += 1;
+            }
+        });
+
+        const defaultEmptyRow = document.getElementById("archiveEmptyDefaultRow");
+        if (defaultEmptyRow) {
+            defaultEmptyRow.style.display = archiveRows.length ? "none" : "";
+        }
+        updateEmptyState("archiveFilterEmptyState", visibleCount);
+    }
+
+    window.resetArchiveFilters = function(){
+        const statusFilter = document.getElementById("statusFilterArchive");
+        const timeFilter = document.getElementById("timeCategoryFilterArchive");
+        const yearFilter = document.getElementById("yearFilterArchive");
+        const monthFilter = document.getElementById("monthFilterArchive");
+
+        if (statusFilter) statusFilter.value = "all";
+        if (timeFilter) timeFilter.value = "all";
+        if (yearFilter) yearFilter.value = "all";
+        if (monthFilter) monthFilter.value = "all";
+
+        applyArchiveFilters();
+    }
 
     // ==========================
     // FILTER KOMODITAS
     // ==========================
     window.filterKomoditas = function(val){
-        val = val.toLowerCase();
-
-        document.querySelectorAll(".data-row").forEach(r=>{
-            let k = r.dataset.komoditas;
-            r.style.display = (val==="all" || k.includes(val)) ? "" : "none";
-        });
+        const komoditasFilter = document.getElementById("komoditasFilterActive");
+        if (komoditasFilter) {
+            komoditasFilter.value = String(val || "all").toLowerCase();
+        }
+        applyActiveFilters();
     }
+
+    window.scrollToArsip = function(){
+        const arsip = document.getElementById("arsipSection");
+        if (arsip) {
+            arsip.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+    }
+
+    applyActiveFilters();
+    applyArchiveFilters();
 
     // ==========================
     // CHART
